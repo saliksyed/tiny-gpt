@@ -23,7 +23,7 @@ train_data = data[:n]
 val_data = data[n:]
 
 block_size = 8
-batch_size = 32
+batch_size = 4
 
 def get_batch(split):
     data = train_data if split == 'train' else val_data
@@ -41,17 +41,29 @@ def val_dataset():
   xb, yb = get_batch('validation')
   yield xb, yb
 
+
 class BigramModel(tf.keras.Model):
   def __init__(self):
     super().__init__()
-    self.embedding = tf.keras.layers.Embedding(vocab_size, vocab_size, input_length=block_size)
+    self.embedding = tf.keras.layers.Embedding(vocab_size, vocab_size)
 
   def call(self, inputs, training=False):
-    return self.embedding(inputs)
+    logits = self.embedding(inputs)
+    return logits
+  
+  def generate(self, idx, max_new_tokens):
+    for _ in range(max_new_tokens):
+        logits  = self.call(idx, training=False)
+        logits = logits[:, -1, :]
+        vocab = np.array([i for i in range(0, vocab_size)], dtype=np.float32)
+        idx_next = [tf.cast(tf.tensordot(tfp.distributions.Multinomial(1, logits=logits).sample(), vocab, 1), dtype=tf.int64)]
+        idx = tf.concat((idx, idx_next), axis=1)
+    return idx
 
 model = BigramModel()
 
-model.compile(optimizer=tf.keras.optimizers.Adam(learning_rate=1e-3), loss=tf.keras.losses.BinaryCrossentropy(from_logits=True))
+
+model.compile(optimizer=tf.keras.optimizers.Adam(learning_rate=1e-3), loss=tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True))
 
 history = model.fit(
   x=tf.data.Dataset.from_generator(train_dataset, (tf.float32, tf.float32),
@@ -62,3 +74,9 @@ history = model.fit(
                                   tf.TensorShape([batch_size, block_size]))),
   epochs=10
 )
+
+gen = model.generate(np.array([[0,0]]), 100)
+print(decode(gen.numpy()[0]))
+
+
+
