@@ -63,7 +63,7 @@ class BigramModel(tf.keras.Model):
 model = BigramModel()
 
 
-model.compile(optimizer=tf.keras.optimizers.Adam(learning_rate=1e-3), loss=tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True))
+model.compile(optimizer=tf.keras.optimizers.Adam(learning_rate=1e-2), loss=tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True))
 
 history = model.fit(
   x=tf.data.Dataset.from_generator(train_dataset, (tf.float32, tf.float32),
@@ -72,7 +72,7 @@ history = model.fit(
   validation_data=tf.data.Dataset.from_generator(val_dataset, (tf.float32, tf.float32),
                                   (tf.TensorShape([batch_size, block_size]),
                                   tf.TensorShape([batch_size, block_size]))),
-  epochs=10
+  epochs=1000
 )
 
 gen = model.generate(np.array([[0,0]]), 100)
