@@ -3,16 +3,18 @@ from dataset import PKD
 
 
 class BaseModel(torch.nn.Module):
-    def __init__(self, dataset, n_embed=32):
+    def __init__(self, dataset, n_embed=512):
         super().__init__()
         self.dataset = dataset
-        self.token_embedding = torch.nn.Embedding(dataset.vocab_size, n_embed)
-        self.relu = torch.nn.ReLU()
-        self.reconstruction = torch.nn.Linear(n_embed, dataset.vocab_size)
-        
+        self.layers = torch.nn.Sequential(
+            torch.nn.Embedding(dataset.vocab_size, n_embed),
+            torch.nn.Linear(n_embed, n_embed),
+            torch.nn.ReLU(),
+            torch.nn.Linear(n_embed, dataset.vocab_size)
+        )
 
     def forward(self, batch, targets=None):
-        logits = self.reconstruction(self.relu(self.token_embedding(batch)))
+        logits = self.layers(batch)
         batch_size, block_size, vocab_size = logits.shape
         loss = None
         if (targets != None):
@@ -36,6 +38,7 @@ class BaseModel(torch.nn.Module):
     
     def train(self, block_size=8, batch_size=16, num_iterations=1000, learning_rate=1e-2):
         self.optimizer = torch.optim.AdamW(self.parameters(), lr=learning_rate)
+        print(sum(p.numel() for p in self.parameters())/1e6, 'M parameters')
         self.block_size = block_size
         for iter in range(num_iterations):
             xb, yb = self.dataset.get_batch(batch_size, block_size, validation=False)
@@ -48,5 +51,5 @@ class BaseModel(torch.nn.Module):
 
 dataset = PKD()
 model = BaseModel(dataset)
-model.train(num_iterations=1)
+model.train()
 print(model.generate(1000))

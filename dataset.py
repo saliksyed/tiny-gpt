@@ -7,8 +7,7 @@ class PKD:
             self.text = f.read()
             self.encoder = tiktoken.get_encoding("r50k_base")
             self.tokens = torch.tensor(self.encoder.encode(self.text))
-            self.vocab = sorted(list(set(self.tokens)))
-            self.vocab_size = len(self.vocab)
+            self.vocab_size = self.encoder.max_token_value + 1
             train = int(0.9 * len(self.tokens))
             self.training_data = self.tokens[:train]
             self.test_data = self.tokens[train:]
@@ -17,7 +16,7 @@ class PKD:
         return self.encoder.encode(text)
 
     def decode(self, encoding):
-        return self.encoder.decode([self.vocab[e] for e in encoding])
+        return self.encoder.decode(encoding)
     
     def get_batch(self, batch_size, block_size, validation=False):
         data = self.test_data if validation else self.training_data
@@ -29,7 +28,7 @@ class PKD:
 
 def test_PKD_encoding():
     dataset = PKD()
-    text = "hello brave new world"
+    text = "spring air rushed into the room."
     assert dataset.decode(dataset.encode(text)) == text
 
 def test_PKD_get_batch():
