@@ -1,9 +1,10 @@
 import tiktoken
 import torch
 
-class PKD:
+class Dataset:
     def __init__(self):
-        with open('pkd.txt', 'r', encoding='utf-8') as f:
+        with open('input.txt', 'r', encoding='utf-8') as f:
+            self.device = 'cuda' if torch.cuda.is_available() else 'cpu'
             self.text = f.read()
             self.encoder = tiktoken.get_encoding("r50k_base")
             self.tokens = torch.tensor(self.encoder.encode(self.text))
@@ -23,6 +24,7 @@ class PKD:
         rand_idx = torch.randint(len(data) - block_size, (batch_size,))
         x = torch.stack([data[i:i+block_size] for i in rand_idx])
         y = torch.stack([data[i + 1: i + 1 + block_size] for i in rand_idx])
+        x, y = x.to(self.device), y.to(self.device)
         return x,y
     
 
